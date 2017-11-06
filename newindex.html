@@ -1,0 +1,213 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="HandheldFriendly" content="true">
+    <title>气象预警</title>
+    <link rel="stylesheet" type="text/css" href="css/index.css" />
+    <script src="js/adapt.js"></script>
+    <script type="text/javascript" src="http://webapi.amap.com/maps?v=1.4.1&key=0b10a34ced322fa55eafbbfe7ffdb8c6"></script>
+</head>
+<body>
+<div class="wrap" id="mapVue">
+    <!-- 内容单页组件列表 -->
+    <map-page-component v-if="componentState.temp" :color-table="colorTable" :markers="markers" :menulist="menulist"></map-page-component>
+
+    <rain-page-component v-else-if="componentState.rain" :color-table="colorTable" :markers="markers" :menulist="menulist"></rain-page-component>
+
+    <humidty-page-component v-else-if="componentState.humidty" :color-table="colorTable" :markers="markers" :menulist="menulist"></humidty-page-component>
+
+    <pressure-page-component v-else-if="componentState.pressure" :color-table="colorTable" :markers="markers" :menulist="menulist"></pressure-page-component>
+
+    <visible-page-component v-else-if="componentState.visible" :color-table="colorTable" :markers="markers" :menulist="menulist"></visible-page-component>
+
+    <airquality-page-component v-else-if="componentState.airquality" :color-table="colorTable" :markers="markers" :menulist="menulist"></airquality-page-component>
+
+    <wind-page-component v-else-if="componentState.wind" :color-table="colorTable" :markers="markers" :menulist="menulist"></wind-page-component>
+
+    <warning-page-component v-else-if="componentState.warning" :polygons="polygons"></warning-page-component>
+
+    <radar-page-component v-else-if="componentState.radar" :satelliteimgs="satelliteimgs"></radar-page-component>
+
+    <satellite-page-component v-else-if="componentState.satellite" :satelliteimgs="satelliteimgs"></satellite-page-component>
+
+    <raindata-page-component v-else-if="componentState.raindata" :markers="markers"></raindata-page-component>
+
+    <!-- 右侧按钮 -->
+    <div class="toolbox">
+        <a href="javascript:void(0)" class="radar" :class="{active:componentState.radar}"  @click="tabFunction('radar')"></a>
+        <a href="javascript:void(0)" class="satellite" :class="{active:componentState.satellite}"  @click="tabFunction('satellite')"></a>
+        <a href="javascript:void(0)" class="raindata" :class="{active:componentState.raindata}"  @click="tabFunction('raindata')"></a>
+    </div>
+    <!-- 功能操作按钮 -->
+    <div class="method-box">
+        <!-- 导航 -->
+        <div class="menus">
+            <div class="btn"><span class="icon" @click="tabBtn()"></span></div>
+            <div class="menulist" v-show="menulist">
+                <ul>
+                    <li :class="{current:componentState.temp}" @click="tabFunction('temp')">
+                        <img src="img/sk1_19.png" alt="icon">
+                        <p>气温</p>
+                    </li>
+                    <li :class="{current:componentState.rain}" @click="tabFunction('rain')">
+                        <img src="img/sk1_21.png" alt="icon">
+                        <p>降水</p>
+                    </li>
+                    <li :class="{current:componentState.humidty}" @click="tabFunction('humidty')">
+                        <img src="img/sk1_22.png" alt="icon">
+                        <p>相对湿度</p>
+                    </li>
+                    <li :class="{current:componentState.pressure}" @click="tabFunction('pressure')">
+                        <img src="img/sk1_26.png" alt="icon">
+                        <p>气压</p>
+                    </li>
+                    <li :class="{current:componentState.visible}" @click="tabFunction('visible')">
+                        <img src="img/sk1_33.png" alt="icon">
+                        <p>能见度</p>
+                    </li>
+                    <li :class="{current:componentState.airquality}" @click="tabFunction('airquality')">
+                        <img src="img/sk1_35.png" alt="icon">
+                        <p>空气质量</p>
+                    </li>
+                    <li :class="{current:componentState.wind}" @click="tabFunction('wind')">
+                        <img src="img/sk1_37.png" alt="icon">
+                        <p>风</p>
+                    </li>
+                    <li :class="{current:componentState.warning}" @click="tabFunction('warning')">
+                        <img src="img/sk1_38.png" alt="icon">
+                        <p>气象预警</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 单页模板 -->
+<template id="mapPage">
+	<div class="page mapPage" id="container" >
+		<div class="show-btn" @click="showImg()"></div>
+		<div class="color-table" :class="{down:!menulist}">
+            <p class="color-title">天气温度色值表 ( ℃ )</p>
+            <div class="color-areas">
+            	<div class="area" :style="itemWidth" v-for="item in localColorTable"><span :style="{backgroundColor: item.color}" :class="{whiteborder:item.current}" @click="filterArea(item.id,item.min,item.max)"></span><p>{{ item.min }}~{{ item.max }}</p></div>
+            </div>
+        </div>
+    </div>
+</template>
+<template id="rainPage">
+	<div class="page rainPage" id="container">
+		<div class="show-btn" @click="showImg()"></div>		
+		<div class="color-table" :class="{down:!menulist}">
+            <p class="color-title">24小时降水信息色值表 ( mm )</p>
+            <div class="color-areas">
+            	<div class="area" :style="itemWidth" v-for="item in localColorTable"><span :style="{backgroundColor: item.color}" :class="{whiteborder:item.current}" @click="filterArea(item.id,item.min,item.max)"></span><p>{{ item.min }}~{{ item.max }}</p></div>
+            </div>
+        </div>
+    </div>
+</template>
+<template id="humidtyPage">
+	<div class="page humidtyPage" id="container">
+		<div class="color-table" :class="{down:!menulist}">
+            <p class="color-title">相对湿度色值表 ( % )</p>
+            <div class="color-areas">
+            	<div class="area" :style="itemWidth" v-for="item in localColorTable" ><span :style="{backgroundColor: item.color}" :class="{whiteborder:item.current}" @click="filterArea(item.id,item.min,item.max)"></span><p>{{ item.min }}~{{ item.max }}</p></div>
+            </div>
+        </div>
+    </div>
+</template>
+<template id="pressurePage">
+	<div class="page pressurePage" id="container">
+		<div class="color-table" :class="{down:!menulist}">
+            <p class="color-title">气压色值表 ( pa )</p>
+            <div class="color-areas">
+            	<div class="area" :style="itemWidth" v-for="item in localColorTable" ><span :style="{backgroundColor: item.color}" :class="{whiteborder:item.current}" @click="filterArea(item.id,item.min,item.max)"></span><p>{{ item.min }}~{{ item.max }}</p></div>
+            </div>
+        </div>
+    </div>
+</template>
+<template id="visiblePage">
+	<div class="page visiblePage" id="container">
+		<div class="color-table" :class="{down:!menulist}">
+            <p class="color-title">能见度色值表 ( m )</p>
+            <div class="color-areas">
+            	<div class="area" :style="itemWidth" v-for="item in localColorTable" ><span :style="{backgroundColor: item.color}" :class="{whiteborder:item.current}" @click="filterArea(item.id,item.min,item.max)"></span><p>{{ item.min }}~{{ item.max }}</p></div>
+            </div>
+        </div>
+    </div>
+</template>
+<template id="airqualityPage">
+	<div class="page airqualityPage" id="container">
+		<div class="color-table" :class="{down:!menulist}">
+            <p class="color-title">空气质量色值表</p>
+            <div class="color-areas">
+            	<div class="area" :style="itemWidth" v-for="item in localColorTable" ><span :style="{backgroundColor: item.color}" :class="{whiteborder:item.current}" @click="filterArea(item.id,item.min,item.max)"></span><p>{{ item.min }}~{{ item.max }}</p></div>
+            </div>
+        </div>
+    </div>
+</template>
+<template id="windPage">
+	<div class="page windPage" id="container">
+		<div class="color-table" :class="{down:!menulist}">
+            <p class="color-title">风信息色值表 ( 级 )</p>
+            <div class="color-areas">
+            	<div class="area" :style="itemWidth" v-for="item in localColorTable" ><span :style="{backgroundColor: item.color}" :class="{whiteborder:item.current}" @click="filterArea(item.id,item.level)"></span><p>{{ item.level }}级</p></div>
+            </div>
+        </div>
+    </div>
+</template>
+<template id="warningPage">
+	<div class="page warningPage" id="container"></div>
+</template>
+<template id="radarPage">
+	<div class="page radarPage" id="container">
+		<div class="wxyt_cnt" id="wxytCnt" style="height: auto;">
+			<img :src="imgUrl" alt="气象雷达图"  style="height: auto;">
+		</div>
+		<div class="wxyt_ft">
+			<div class="op">
+				<a :class="[playState ? 'play' : 'pause']" href="javascript:void(0);" @click="playFun()" :title="[playState ? '播放' : '暂停']" ></a>
+			</div>
+			<div class="slide_box">
+				<div class="slide" id="sld">
+					<p class="progressbg">
+						<span :style="{width:progress}" class="progress" ></span>
+					</p>					
+				</div>
+			</div>
+		</div>
+	</div>
+</template>
+<template id="satellitePage">
+	<div class="page satellitePage" id="container">
+		<div class="wxyt_cnt" id="wxytCnt" style="height: auto;">
+			<img :src="imgUrl" alt="卫星云图"  style="height: auto;">
+		</div>
+		<div class="wxyt_ft">
+			<div class="op">
+				<a :class="[playState ? 'play' : 'pause']" href="javascript:void(0);" @click="playFun()" :title="[playState ? '播放' : '暂停']" ></a>
+			</div>
+			<div class="slide_box">
+				<div class="slide" id="sld">
+					<p class="progressbg">
+						<span :style="{width:progress}" class="progress" ></span>
+					</p>					
+				</div>
+			</div>
+		</div>
+	</div>
+</template>
+<template id="raindataPage">
+	<div class="page raindataPage" id="container"></div>
+</template>
+</body>
+<script src="js/jquery.min.js"></script>
+<script src="js/vue.min.js"></script>
+<script src="js/layer/mobile/layer.js"></script>
+<script src="js/localdata.js"></script>
+<script src="js/controller.js"></script>
+</html>
